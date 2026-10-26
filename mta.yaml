@@ -1,0 +1,100 @@
+_schema-version: 3.3.0
+ID: zmaxx-f2548-ext
+version: 1.0.0
+description: "ZMAXX retirement - side-by-side extension to Fiori F2548 on SAP BTP"
+parameters:
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npm ci
+        - npx cds build --production
+        # mbt runs each line without a shell: one command per line, no && or pipes.
+        # The approuter serves the UIs with the same folder layout as in development
+        # (/app/upload/webapp, /app/results/webapp, /app/excel-addin).
+        - rm -rf app/router/resources
+        - mkdir -p app/router/resources/upload app/router/resources/results
+        - cp -r app/upload/webapp app/router/resources/upload/
+        - cp -r app/results/webapp app/router/resources/results/
+        - cp -r app/excel-addin app/router/resources/
+modules:
+  - name: zmaxx-f2548-ext-srv
+    type: nodejs
+    path: gen/srv
+    parameters:
+      instances: 1
+      buildpack: nodejs_buildpack
+    build-parameters:
+      builder: npm-ci
+    provides:
+      - name: srv-api # required by consumers of CAP services (e.g. approuter)
+        properties:
+          srv-url: ${default-url}
+    requires:
+      - name: zmaxx-f2548-ext-auth
+      - name: zmaxx-f2548-ext-db
+      - name: zmaxx-f2548-ext-destination # S4_ODATA, S4_SOAP
+      - name: zmaxx-f2548-ext-connectivity # Cloud Connector to on-premise S/4HANA
+
+  - name: zmaxx-f2548-ext-db-deployer
+    type: hdb
+    path: gen/db
+    parameters:
+      buildpack: nodejs_buildpack
+    requires:
+      - name: zmaxx-f2548-ext-db
+  - name: zmaxx-f2548-ext
+    type: approuter.nodejs
+    path: app/router
+    parameters:
+      keep-existing-routes: true
+      disk-quota: 256M
+      memory: 256M
+    requires:
+      - name: srv-api
+        group: destinations
+        properties:
+          name: srv-api # must be used in xs-app.json as well
+          url: ~{srv-url}
+          forwardAuthToken: true
+      - name: zmaxx-f2548-ext-auth
+    provides:
+      - name: app-api
+        properties:
+          app-protocol: ${protocol}
+          app-uri: ${default-uri}
+
+resources:
+  - name: zmaxx-f2548-ext-auth
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: application
+      path: ./xs-security.json
+      config:
+        xsappname: zmaxx-f2548-ext-${org}-${space}
+        tenant-mode: dedicated
+        oauth2-configuration:
+          credential-types:
+            - "binding-secret"
+            - "x509"
+          redirect-uris:
+            - https://*~{app-api/app-uri}/**
+    requires:
+      - name: app-api
+  - name: zmaxx-f2548-ext-db
+    type: com.sap.xs.hdi-container
+    parameters:
+      service: hana
+      service-plan: hdi-shared
+  - name: zmaxx-f2548-ext-destination
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: destination
+      service-plan: lite
+  - name: zmaxx-f2548-ext-connectivity
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: connectivity
+      service-plan: lite

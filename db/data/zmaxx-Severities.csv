@@ -1,0 +1,4 @@
+code;name;descr;criticality
+E;Error;Blocks the upload;1
+W;Warning;Does not block the upload;2
+I;Info;Information only;0

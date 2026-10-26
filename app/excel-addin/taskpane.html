@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upload to SAP</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <style>
+    :root { --blue: #0070f2; --ink: #1d2d3e; --quiet: #556b82; --line: #d9d9d9; --ok: #188918; --bad: #d20a0a; --warn: #c35500; }
+    body { font: 14px/1.4 "Segoe UI", Arial, sans-serif; color: var(--ink); margin: 0; padding: 16px; background: #fff; }
+    h1 { font-size: 16px; margin: 0 0 4px; }
+    p.sub { margin: 0 0 16px; color: var(--quiet); font-size: 12px; }
+    label { display: block; font-size: 12px; color: var(--quiet); margin: 10px 0 4px; }
+    select { width: 100%; padding: 6px; border: 1px solid var(--line); border-radius: 4px; font: inherit; }
+    .check { display: flex; gap: 8px; align-items: center; margin-top: 10px; font-size: 13px; }
+    button { width: 100%; margin-top: 16px; padding: 10px; border: 0; border-radius: 6px; background: var(--blue); color: #fff; font: 600 14px "Segoe UI", Arial, sans-serif; cursor: pointer; }
+    button:disabled { opacity: .5; cursor: default; }
+    .card { margin-top: 16px; border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+    .bar { height: 6px; background: #eee; border-radius: 3px; overflow: hidden; margin: 8px 0 12px; }
+    .bar > div { height: 100%; width: 0; background: var(--blue); transition: width .3s; }
+    ol { list-style: none; padding: 0; margin: 0; }
+    li { padding: 4px 0; font-size: 13px; }
+    li .d { display: block; color: var(--quiet); font-size: 12px; margin-left: 20px; }
+    .s-ok { color: var(--ok); } .s-bad { color: var(--bad); } .s-wait { color: #999; }
+    .msg { font-size: 13px; margin-top: 12px; }
+    .msg.bad { color: var(--bad); } .msg.ok { color: var(--ok); } .msg.warn { color: var(--warn); }
+    a { color: var(--blue); }
+    .links a { display: block; margin-top: 8px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Upload to SAP</h1>
+  <p class="sub">Sends this workbook as it is now. Save is not needed.</p>
+
+  <label for="format">Format</label>
+  <select id="format">
+    <option value="1">1-Currency</option>
+    <option value="3">3-Currency</option>
+  </select>
+
+  <label for="mode">Action</label>
+  <select id="mode">
+    <option value="POST">Upload to SAP</option>
+    <option value="PARK">Park to SAP</option>
+  </select>
+
+  <label for="dateFormat">SAP date format (SU3)</label>
+  <select id="dateFormat">
+    <option value="MMDDYYYY">MMDDYYYY</option>
+    <option value="DDMMYYYY">DDMMYYYY</option>
+  </select>
+
+  <div class="check"><input type="checkbox" id="sortAndSplit" checked><span>Sort &amp; Split by amount</span></div>
+  <div class="check"><input type="checkbox" id="validateOnly" checked><span>Validate only (nothing is sent to SAP)</span></div>
+
+  <button id="upload" disabled>Upload to SAP</button>
+
+  <div class="card" id="progress" hidden>
+    <strong id="fileName"></strong>
+    <div class="bar"><div id="bar"></div></div>
+    <ol id="steps"></ol>
+    <div class="msg" id="result"></div>
+    <div class="links" id="links"></div>
+  </div>
+
+  <div class="msg bad" id="error"></div>
+  <script src="taskpane.js"></script>
+</body>
+</html>

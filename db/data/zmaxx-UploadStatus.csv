@@ -1,0 +1,11 @@
+code;name;descr;criticality
+STARTED;Upload Started;File received;0
+VALIDATING;Validating;Running ZMAXX rules and SAP checks;2
+VALIDATED;Validation Complete;No errors, ready to split and post;3
+HAS_ERRORS;Errors Found;Fix the errors and upload the corrected file;1
+SPLITTING;Splitting;Building balanced sub-documents;2
+POSTING;Posting;Creating journals in S/4HANA;2
+COMPLETED;Completed;Journals and workflows created;3
+FAILED;Failed;Processing stopped, see messages;1
+PARTIAL;Partly Valid;Journals without errors are ready, journals with errors are held back;2
+PARTIAL_DONE;Partly Completed;Journals without errors were sent to SAP, journals with errors were held back;2

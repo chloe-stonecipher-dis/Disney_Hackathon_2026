@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Excel add-in: "Upload to SAP" button for the journal template (FR-02).
+  All URLs point at the app. Replace https://poc-mc10-org-poc-mc-space10-zmaxx-f2548-ext.cfapps.us10-001.hana.ondemand.com
+  with the approuter URL after deploying to BTP.
+-->
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+           xsi:type="TaskPaneApp">
+  <Id>a6314cc0-b30b-4a10-a85e-56e487837879</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Finance IT</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Journal Upload to SAP"/>
+  <Description DefaultValue="Send this journal workbook to SAP in one click: validation, Sort &amp; Split, park or post."/>
+  <IconUrl DefaultValue="https://poc-mc10-org-poc-mc-space10-zmaxx-f2548-ext.cfapps.us10-001.hana.ondemand.com/app/excel-addin/assets/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://poc-mc10-org-poc-mc-space10-zmaxx-f2548-ext.cfapps.us10-001.hana.ondemand.com/app/excel-addin/assets/icon-64.png"/>
+  <SupportUrl DefaultValue="https://poc-mc10-org-poc-mc-space10-zmaxx-f2548-ext.cfapps.us10-001.hana.ondemand.com/app/upload/webapp/index.html"/>
+  <AppDomains>
+    <AppDomain>https://poc-mc10-org-poc-mc-space10-zmaxx-f2548-ext.cfapps.us10-001.hana.ondemand.com</AppDomain>
+  </AppDomains>
+  <Hosts>
+    <Host Name="Workbook"/>
+  </Hosts>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://poc-mc10-org-poc-mc-space10-zmaxx-f2548-ext.cfapps.us10-001.hana.ondemand.com/app/excel-addin/taskpane.html"/>
+  </DefaultSettings>
+  <!-- ReadDocument is needed to send the open workbook -->
+  <Permissions>ReadDocument</Permissions>
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Workbook">
+        <DesktopFormFactor>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="JournalUpload.Group">
+                <Label resid="JournalUpload.GroupLabel"/>
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16"/>
+                  <bt:Image size="32" resid="Icon.32"/>
+                  <bt:Image size="80" resid="Icon.80"/>
+                </Icon>
+                <Control xsi:type="Button" id="JournalUpload.Button">
+                  <Label resid="JournalUpload.ButtonLabel"/>
+                  <Supertip>
+                    <Title resid="JournalUpload.ButtonLabel"/>
+                    <Description resid="JournalUpload.ButtonTip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16"/>
+                    <bt:Image size="32" resid="Icon.32"/>
+                    <bt:Image size="80" resid="Icon.80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>JournalUpload.Pane</TaskpaneId>
+                    <SourceLocation resid="Taskpane.Url"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16" DefaultValue="https://poc-mc10-org-poc-mc-space10-zmaxx-f2548-ext.cfapps.us10-001.hana.ondemand.com/app/excel-addin/assets/icon-16.png"/>
+        <bt:Image id="Icon.32" DefaultValue="https://poc-mc10-org-poc-mc-space10-zmaxx-f2548-ext.cfapps.us10-001.hana.ondemand.com/app/excel-addin/assets/icon-32.png"/>
+        <bt:Image id="Icon.80" DefaultValue="https://poc-mc10-org-poc-mc-space10-zmaxx-f2548-ext.cfapps.us10-001.hana.ondemand.com/app/excel-addin/assets/icon-80.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://poc-mc10-org-poc-mc-space10-zmaxx-f2548-ext.cfapps.us10-001.hana.ondemand.com/app/excel-addin/taskpane.html"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="JournalUpload.GroupLabel" DefaultValue="SAP Journal"/>
+        <bt:String id="JournalUpload.ButtonLabel" DefaultValue="Upload to SAP"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="JournalUpload.ButtonTip" DefaultValue="Send this workbook to SAP: validation, Sort &amp; Split, then park or post."/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

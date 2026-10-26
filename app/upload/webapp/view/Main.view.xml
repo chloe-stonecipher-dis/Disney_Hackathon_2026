@@ -1,0 +1,483 @@
+<mvc:View controllerName="zmaxx.upload.controller.Main"
+  xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" xmlns:core="sap.ui.core"
+  xmlns:f="sap.f" xmlns:u="sap.ui.unified" xmlns:l="sap.ui.layout">
+  <App>
+    <f:FlexibleColumnLayout id="fcl" layout="{ui>/layout}" backgroundDesign="Solid">
+
+      <!-- Begin column: upload settings and recent uploads -->
+      <f:beginColumnPages>
+        <f:DynamicPage id="page" showFooter="true" toggleHeaderOnTitleClick="true" class="juPage">
+
+          <!-- Title bar -->
+          <f:title>
+            <f:DynamicPageTitle>
+              <f:heading>
+                <Title text="Journal Upload" level="H2"/>
+              </f:heading>
+              <f:expandedContent>
+                <Text text="Check, split and post general journal entries from the F2548 upload template."/>
+              </f:expandedContent>
+              <f:snappedContent>
+                <Text text="Check, split and post general journal entries from the F2548 upload template."/>
+              </f:snappedContent>
+              <f:actions>
+                <Button text="Transaction Type Rules" icon="sap-icon://action-settings" type="Transparent" press=".onOpenRules"/>
+                <Button text="Download Template" type="Transparent" press=".onDownloadTemplate" tooltip="ZMAXX upload template: a Header section and a Line Items section per journal"/>
+                <Button text="Upload History" icon="sap-icon://history" type="Transparent" press=".onOpenHistory"/>
+              </f:actions>
+            </f:DynamicPageTitle>
+          </f:title>
+
+          <!-- Settings -->
+          <f:header>
+            <f:DynamicPageHeader pinnable="true">
+              <VBox>
+                <MessageStrip visible="{= !${ui>/postingEnabled} }" type="Information" showIcon="true" class="sapUiSmallMarginBottom"
+                  text="Sending journals to SAP is switched off in this system. Validate checks your file against S/4 and shows the journals that would be created."/>
+                <l:Grid defaultSpan="XL4 L4 M6 S12" containerQuery="true" hSpacing="2" vSpacing="0" class="juSettings">
+                  <VBox class="juField">
+                    <Label text="Journal file" required="true" labelFor="file"/>
+                    <HBox class="juControl" renderType="Bare">
+                      <u:FileUploader id="file" width="100%" fileType="xlsx,csv" placeholder="Choose a file" change=".onFileChange" sendXHR="false" useMultipart="false" buttonText="Browse"/>
+                    </HBox>
+                    <Text text="F2548 template (.csv) or Excel (.xlsx)" class="juHint"/>
+                  </VBox>
+                  <VBox class="juField">
+                    <Label text="Currency format"/>
+                    <HBox class="juControl" renderType="Bare">
+                      <SegmentedButton selectedKey="{ui>/format}" width="100%">
+                        <items>
+                          <SegmentedButtonItem key="1" text="1-Currency"/>
+                          <SegmentedButtonItem key="3" text="3-Currency"/>
+                        </items>
+                      </SegmentedButton>
+                    </HBox>
+                    <Text text="{= ${ui>/format} === '3' ? 'Local and group amounts come from the file' : 'SAP calculates local and group amounts' }" class="juHint"/>
+                  </VBox>
+                  <VBox class="juField">
+                    <Label text="Date format" labelFor="dateFormat"/>
+                    <HBox class="juControl" renderType="Bare">
+                      <Select id="dateFormat" selectedKey="{ui>/dateFormat}" width="100%">
+                        <core:Item key="MMDDYYYY" text="MMDDYYYY (10212026)"/>
+                        <core:Item key="DDMMYYYY" text="DDMMYYYY (21102026)"/>
+                      </Select>
+                    </HBox>
+                    <Text text="As in your SAP user settings (SU3)" class="juHint"/>
+                  </VBox>
+                  <VBox class="juField">
+                    <Label text="Posting"/>
+                    <HBox class="juControl" renderType="Bare">
+                      <SegmentedButton selectedKey="{ui>/mode}" width="100%">
+                        <items>
+                          <SegmentedButtonItem key="POST" text="Post"/>
+                          <SegmentedButtonItem key="PARK" text="Park for approval"/>
+                        </items>
+                      </SegmentedButton>
+                    </HBox>
+                    <Text text="Over 1,000,000 USD is always parked" class="juHint"/>
+                  </VBox>
+                  <VBox class="juField">
+                    <Label text="Sort and split by amount" labelFor="sortAndSplit"/>
+                    <HBox class="juControl" renderType="Bare">
+                      <Switch id="sortAndSplit" state="{ui>/sortAndSplit}" customTextOn="On" customTextOff="Off"/>
+                    </HBox>
+                    <Text text="Under 1, 1 to 100, over 100 USD" class="juHint"/>
+                  </VBox>
+                  <VBox class="juField">
+                    <Label text="Suppress 3-Currency checks" labelFor="suppress"/>
+                    <HBox class="juControl" renderType="Bare">
+                      <Switch id="suppress" state="{ui>/suppress}" enabled="{= ${ui>/format} === '3' }" customTextOn="On" customTextOff="Off"/>
+                    </HBox>
+                    <Text text="3-Currency only" class="juHint"/>
+                  </VBox>
+                </l:Grid>
+              </VBox>
+            </f:DynamicPageHeader>
+          </f:header>
+
+          <f:content>
+            <VBox id="beginHost">
+            <!-- Results of the current upload: shown here, or in the mid column when opened from the list -->
+            <VBox id="results" visible="{= !!${ui>/upload} || ${ui>/detailBusy} }" busy="{ui>/detailBusy}" busyIndicatorDelay="0" class="juResults">
+            <FlexBox wrap="Wrap" alignItems="Start" class="juKpis">
+              <VBox class="juKpi juKpiFile" visible="{= ${ui>/view} === 'inline' }">
+                <Label text="File"/>
+                <Title text="{ui>/upload/fileName}" level="H3" wrapping="true"/>
+                <Text text="{parts: ['ui>/upload/createdAt', 'ui>/upload/createdBy'], formatter: '.formatUploadedBy'}" class="juHint"/>
+              </VBox>
+              <VBox class="juKpi">
+                <Label text="Status"/>
+                <ObjectStatus text="{ui>/upload/status/name}" inverted="true" state="{path: 'ui>/upload/status/criticality', formatter: '.formatCriticality'}" class="juStatus"/>
+              </VBox>
+              <VBox class="juKpi">
+                <Label text="Lines"/>
+                <ObjectNumber number="{ui>/upload/totalLines}" class="juKpiNumber"/>
+              </VBox>
+              <VBox class="juKpi">
+                <Label text="Errors"/>
+                <ObjectNumber number="{ui>/upload/errorCount}" state="{= ${ui>/upload/errorCount} > 0 ? 'Error' : 'None' }" class="juKpiNumber"/>
+              </VBox>
+              <VBox class="juKpi">
+                <Label text="Warnings"/>
+                <ObjectNumber number="{ui>/upload/warningCount}" state="{= ${ui>/upload/warningCount} > 0 ? 'Warning' : 'None' }" class="juKpiNumber"/>
+              </VBox>
+              <VBox class="juKpi">
+                <Label text="Journals"/>
+                <ObjectNumber number="{ui>/upload/documentCount}" class="juKpiNumber"/>
+              </VBox>
+            </FlexBox>
+
+            <!-- Progress (FR-08) -->
+            <VBox class="juCard">
+              <HBox justifyContent="SpaceBetween" alignItems="Center">
+                <Title text="Progress" level="H4"/>
+                <Text text="{ui>/bar/text}" class="juHint"/>
+              </HBox>
+              <ProgressIndicator percentValue="{ui>/bar/percent}" showValue="false" height="0.5rem" class="sapUiTinyMarginTopBottom"
+                state="{path: 'ui>/upload/status_code', formatter: '.formatProgressState'}"/>
+              <MessageStrip visible="{= !!${ui>/notice/text} }" text="{ui>/notice/text}" type="{ui>/notice/type}" showIcon="true" class="sapUiSmallMarginBottom">
+                <link>
+                  <Link text="{ui>/notice/linkText}" press=".onShowMessages" visible="{= !!${ui>/notice/linkText} }"/>
+                </link>
+              </MessageStrip>
+              <FlexBox items="{ui>/stages}" wrap="Wrap" class="juSteps">
+                <VBox class="juStep">
+                  <HBox alignItems="Center">
+                    <core:Icon src="{= ${ui>failed} ? 'sap-icon://error' : (${ui>warn} ? 'sap-icon://alert' : (${ui>done} ? 'sap-icon://sys-enter-2' : 'sap-icon://circle-task')) }"
+                      color="{= ${ui>failed} ? 'Negative' : (${ui>warn} ? 'Critical' : (${ui>done} ? 'Positive' : 'Neutral')) }" size="1.125rem" class="sapUiTinyMarginEnd"/>
+                    <Text text="{ui>name}" class="juStepName"/>
+                  </HBox>
+                  <Text text="{ui>detail}" class="juHint juStepDetail" wrapping="true"/>
+                  <Text text="{ui>at}" class="juHint"/>
+                </VBox>
+              </FlexBox>
+            </VBox>
+
+            <!-- Results -->
+            <IconTabBar id="tabs" expandable="false" headerMode="Inline" stretchContentHeight="false" applyContentPadding="false" class="juTabs">
+              <items>
+                <!-- Messages (FR-06, FR-07, FR-09) -->
+                <IconTabFilter key="messages" text="Messages" count="{= ${ui>/messages}.length }" icon="sap-icon://message-popup"
+                  iconColor="{= ${ui>/upload/errorCount} > 0 ? 'Negative' : 'Default' }">
+                  <Table items="{ui>/messages}" busy="{ui>/resultsBusy}" busyIndicatorDelay="0" growing="true" growingThreshold="25" sticky="ColumnHeaders,HeaderToolbar"
+                    noDataText="No messages. Every line passed the checks.">
+                    <headerToolbar>
+                      <OverflowToolbar>
+                        <Title text="All messages, by line" level="H4"/>
+                        <ToolbarSpacer/>
+                        <Button text="Download Lines with Errors" icon="sap-icon://download" type="Transparent" press=".onDownloadErrorLines"
+                          enabled="{= ${ui>/upload/errorCount} > 0 }"
+                          tooltip="The journals that were held back, in the uploaded template layout with the error lines marked. Correct them and upload the file again"/>
+                        <Button text="Download Error Report" icon="sap-icon://excel-attachment" type="Transparent" press=".onDownloadReport"
+                          enabled="{= ${ui>/messages}.length > 0 }"/>
+                      </OverflowToolbar>
+                    </headerToolbar>
+                    <columns>
+                      <Column width="5rem"><Text text="Line"/></Column>
+                      <Column width="8rem"><Text text="Severity"/></Column>
+                      <Column minScreenWidth="Desktop" demandPopin="true" width="13rem"><Text text="Check"/></Column>
+                      <Column><Text text="Message"/></Column>
+                      <Column minScreenWidth="Tablet" demandPopin="true"><Text text="How to fix"/></Column>
+                      <Column width="7rem" hAlign="End"/>
+                    </columns>
+                    <items>
+                      <ColumnListItem highlight="{= ${ui>severity_code} === 'E' ? 'Error' : 'Warning' }">
+                        <cells>
+                          <ObjectIdentifier title="{= ${ui>lineNo} > 0 ? ${ui>lineNo} : 'File' }"/>
+                          <ObjectStatus text="{= ${ui>severity_code} === 'E' ? 'Error' : 'Warning' }" state="{= ${ui>severity_code} === 'E' ? 'Error' : 'Warning' }"
+                            icon="{= ${ui>severity_code} === 'E' ? 'sap-icon://error' : 'sap-icon://alert' }"/>
+                          <Text text="{ui>code}" class="juCode"/>
+                          <Text text="{ui>text}"/>
+                          <Text text="{ui>aiExplanation}"/>
+                          <Button text="Explain" icon="sap-icon://ai" type="Transparent" press=".onExplain" visible="{= !${ui>aiExplanation} }"/>
+                        </cells>
+                      </ColumnListItem>
+                    </items>
+                  </Table>
+                </IconTabFilter>
+
+                <!-- Journals (FR-01, FR-03, FR-04, FR-05) -->
+                <IconTabFilter key="journals" text="Journals" count="{= ${ui>/docs}.length }" icon="sap-icon://accounting-document-verification">
+                  <Table items="{ui>/docs}" busy="{ui>/resultsBusy}" busyIndicatorDelay="0" sticky="ColumnHeaders" noDataText="No journals yet. Journals appear after a file passes validation.">
+                    <headerToolbar>
+                      <OverflowToolbar>
+                        <Title text="{= ${ui>/docs}.length > 0 &amp;&amp; (${ui>/docs/0/s4Status} === 'PREVIEW' || ${ui>/docs/0/s4Status} === 'HELD') ? 'Journals that would be created (preview, nothing sent to SAP); journals with errors are held back' : 'Journals created in SAP' }" level="H4"/>
+                      </OverflowToolbar>
+                    </headerToolbar>
+                    <columns>
+                      <Column width="3.5rem"><Text text="#"/></Column>
+                      <Column width="6rem"><Text text="Journal"/></Column>
+                      <Column><Text text="Currency and band"/></Column>
+                      <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Split reason"/></Column>
+                      <Column hAlign="End" width="6rem"><Text text="Lines"/></Column>
+                      <Column hAlign="End"><Text text="Debit (USD)"/></Column>
+                      <Column><Text text="SAP document"/></Column>
+                      <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Approval"/></Column>
+                    </columns>
+                    <items>
+                      <ColumnListItem highlight="{= ${ui>s4Status} === 'HELD' ? 'Error' : 'None' }">
+                        <cells>
+                          <Text text="{ui>seq}"/>
+                          <Text text="{ui>docRef}"/>
+                          <Text text="{parts: ['ui>currencyTC', 'ui>amountBand'], formatter: '.formatBand'}"/>
+                          <Text text="{path: 'ui>splitReason', formatter: '.formatSplitReason'}"/>
+                          <ObjectNumber number="{ui>lineCount}"/>
+                          <ObjectNumber number="{path: 'ui>totalDebitUSD', type: 'sap.ui.model.type.Float', formatOptions: {minFractionDigits: 2, maxFractionDigits: 2}}" unit="USD"/>
+                          <ObjectIdentifier
+                            title="{= ${ui>s4Status} === 'HELD' ? 'Held back' : (${ui>s4DocumentNumber} || (${ui>s4Status} === 'PREVIEW' ? 'Not sent' : (${ui>s4Status} === 'FAILED' ? 'Not created' : ''))) }"
+                            text="{= ${ui>s4Status} === 'HELD' ? 'Has errors, not sent' : (${ui>s4DocumentNumber} ? ${ui>s4CompanyCode} + ' / ' + ${ui>s4FiscalYear} + ' · ' + (${ui>s4Status} === 'PARKED' ? 'Parked' : 'Posted') : (${ui>postingMode} === 'PARK' ? 'Would be parked' : 'Would be posted')) }"/>
+                          <ObjectStatus text="{= ${ui>s4Status} === 'HELD' ? 'Fix errors first' : (${ui>needsApproval} ? (${ui>workflowStatus} === 'IN_VERIFY_GJE' ? 'In Verify General Journal Entries' : 'Approval needed') : 'Not needed') }"
+                            state="{= ${ui>s4Status} === 'HELD' ? 'Error' : (${ui>needsApproval} ? 'Warning' : 'Success') }" tooltip="{ui>approvalReason}"
+                            icon="{= ${ui>s4Status} === 'HELD' ? 'sap-icon://error' : (${ui>attachmentId} ? 'sap-icon://attachment' : '') }"/>
+                        </cells>
+                      </ColumnListItem>
+                    </items>
+                  </Table>
+                </IconTabFilter>
+
+                <!-- Lines with page navigation (FR-10) -->
+                <IconTabFilter key="lines" text="Lines" count="{ui>/upload/totalLines}" icon="sap-icon://list">
+                  <Table items="{ui>/lines}" busy="{ui>/linesBusy}" sticky="ColumnHeaders,HeaderToolbar" noDataText="No lines match this view.">
+                    <headerToolbar>
+                      <OverflowToolbar>
+                        <SegmentedButton selectedKey="{ui>/lineMode}" selectionChange=".onLinesFilter" class="juLineFilter">
+                          <items>
+                            <SegmentedButtonItem key="all" text="All lines"/>
+                            <SegmentedButtonItem id="lineErrors" key="errors" text="Error lines only"/>
+                            <SegmentedButtonItem id="lineValid" key="valid" text="Validated lines" tooltip="Lines of journals without errors: ready to post, or already in SAP"/>
+                          </items>
+                        </SegmentedButton>
+                        <SearchField width="14rem" placeholder="Go to line number" search=".onLineSearch" value="{ui>/lineSearch}"/>
+                        <ToolbarSpacer/>
+                        <Button icon="sap-icon://close-command-field" tooltip="First page" type="Transparent" press=".onFirstPage" enabled="{= ${ui>/page} > 1 }"/>
+                        <Button icon="sap-icon://navigation-left-arrow" tooltip="Previous page" type="Transparent" press=".onPrevPage" enabled="{= ${ui>/page} > 1 }"/>
+                        <Label text="Page" labelFor="pageInput"/>
+                        <StepInput id="pageInput" value="{ui>/page}" min="1" max="{ui>/pageCount}" width="7.5rem" change=".onPageChange"/>
+                        <Text text="of {ui>/pageCount}"/>
+                        <Button icon="sap-icon://navigation-right-arrow" tooltip="Next page" type="Transparent" press=".onNextPage" enabled="{= ${ui>/page} &lt; ${ui>/pageCount} }"/>
+                        <Button icon="sap-icon://open-command-field" tooltip="Last page" type="Transparent" press=".onLastPage" enabled="{= ${ui>/page} &lt; ${ui>/pageCount} }"/>
+                      </OverflowToolbar>
+                    </headerToolbar>
+                    <columns>
+                      <Column width="5rem"><Text text="Line"/></Column>
+                      <Column width="5rem"><Text text="Journal"/></Column>
+                      <Column width="6rem"><Text text="Co. code"/></Column>
+                      <Column><Text text="G/L account"/></Column>
+                      <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Bus. area"/></Column>
+                      <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Trans. type"/></Column>
+                      <Column minScreenWidth="Tablet" demandPopin="true"><Text text="Tax"/></Column>
+                      <Column hAlign="End"><Text text="Amount"/></Column>
+                      <Column minScreenWidth="Desktop" demandPopin="true" hAlign="End"><Text text="Group currency"/></Column>
+                      <Column minScreenWidth="Desktop" demandPopin="true"><Text text="SAP document"/></Column>
+                    </columns>
+                    <items>
+                      <ColumnListItem highlight="{= ${ui>hasError} ? 'Error' : (${ui>subDocument} ? 'Success' : 'None') }">
+                        <cells>
+                          <ObjectIdentifier title="{ui>lineNo}"/>
+                          <Text text="{ui>docRef}"/>
+                          <Text text="{ui>companyCode}"/>
+                          <Text text="{ui>glAccount}"/>
+                          <Text text="{ui>businessArea}"/>
+                          <Text text="{ui>ttype}"/>
+                          <Text text="{ui>taxCode}"/>
+                          <ObjectNumber number="{ui>amountTC}" unit="{ui>currencyTC}"/>
+                          <ObjectNumber number="{ui>amountGC}" unit="{ui>currencyGC}"/>
+                          <Text text="{ui>subDocument/s4DocumentNumber}"/>
+                        </cells>
+                      </ColumnListItem>
+                    </items>
+                  </Table>
+                </IconTabFilter>
+              </items>
+            </IconTabBar>
+            </VBox>
+              <!-- Recent uploads and the files kept in Document Management (Gap 4) -->
+              <VBox id="recentSection" class="juRecent">
+                <OverflowToolbar class="juHistoryBar">
+                  <SegmentedButton selectedKey="{ui>/historyView}" selectionChange=".onHistoryView">
+                    <items>
+                      <SegmentedButtonItem key="uploads" text="Recent Uploads" icon="sap-icon://history"/>
+                      <SegmentedButtonItem key="dms" text="Files in DMS" icon="sap-icon://folder-blank"/>
+                    </items>
+                  </SegmentedButton>
+                  <ToolbarSpacer/>
+                  <Text text="{= ${ui>/historyView} === 'dms' ? 'Original files kept in Document Management' : 'Select an upload to open its results' }" class="juHint"/>
+                  <Button icon="sap-icon://refresh" tooltip="Refresh" type="Transparent" press=".onRefreshHistory"/>
+                </OverflowToolbar>
+
+                <Table id="recent" contextualWidth="Auto" busyIndicatorDelay="0" visible="{= ${ui>/historyView} !== 'dms' }" items="{ui>/recent}" mode="None" itemPress=".onRecentPress" growing="true" growingThreshold="15"
+                  busy="{ui>/recentBusy}" sticky="ColumnHeaders" noDataText="No uploads yet.">
+                  <columns>
+                    <Column><Text text="File"/></Column>
+                    <Column minScreenWidth="Desktop" width="11rem"><Text text="Uploaded"/></Column>
+                    <Column minScreenWidth="Desktop"><Text text="By"/></Column>
+                    <Column minScreenWidth="Desktop" width="7rem"><Text text="Format"/></Column>
+                    <Column minScreenWidth="Desktop" width="6rem"><Text text="Posting"/></Column>
+                    <Column hAlign="End" width="5.5rem"><Text text="Lines"/></Column>
+                    <Column hAlign="End" width="5.5rem"><Text text="Errors"/></Column>
+                    <Column hAlign="End" width="6rem" minScreenWidth="Desktop"><Text text="Journals"/></Column>
+                    <Column width="5rem" hAlign="Center" minScreenWidth="Desktop"><Text text="In DMS"/></Column>
+                    <Column width="12rem"><Text text="Status"/></Column>
+                  </columns>
+                  <items>
+                    <ColumnListItem type="Navigation" highlight="{= ${ui>ID} === ${ui>/upload/ID} ? 'Information' : 'None' }">
+                      <cells>
+                        <ObjectIdentifier title="{ui>fileName}" text="{parts: ['ui>createdAt', 'ui>/layout'], formatter: '.formatRecentDate'}"/>
+                        <Text text="{path: 'ui>createdAt', formatter: '.formatDateTime'}"/>
+                        <Text text="{ui>createdBy}"/>
+                        <Text text="{= ${ui>format} === '3' ? '3-Currency' : '1-Currency' }"/>
+                        <Text text="{= ${ui>requestedMode} === 'PARK' ? 'Park' : 'Post' }"/>
+                        <ObjectNumber number="{ui>totalLines}"/>
+                        <ObjectNumber number="{ui>errorCount}" state="{= ${ui>errorCount} > 0 ? 'Error' : 'None' }"/>
+                        <ObjectNumber number="{ui>documentCount}"/>
+                        <core:Icon src="{= ${ui>dmsStatus} === 'STORED' ? 'sap-icon://sys-enter-2' : (${ui>dmsStatus} === 'FAILED' ? 'sap-icon://alert' : 'sap-icon://less') }"
+                          color="{= ${ui>dmsStatus} === 'STORED' ? 'Positive' : (${ui>dmsStatus} === 'FAILED' ? 'Critical' : 'Neutral') }"
+                          tooltip="{= ${ui>dmsStatus} === 'STORED' ? 'Stored in Document Management' : (${ui>dmsStatus} === 'FAILED' ? 'Could not be stored in Document Management' : 'Uploaded before Document Management was connected') }"/>
+                        <ObjectStatus text="{ui>status/name}" inverted="true"
+                          state="{path: 'ui>status/criticality', formatter: '.formatCriticality'}"
+                          icon="{path: 'ui>status_code', formatter: '.formatStatusIcon'}"/>
+                      </cells>
+                    </ColumnListItem>
+                  </items>
+                </Table>
+
+                <VBox visible="{= ${ui>/historyView} === 'dms' }">
+                  <MessageStrip visible="{= !!${ui>/dms/message} }" text="{ui>/dms/message}" showIcon="true"
+                    type="{= ${ui>/dms/reachable} ? 'Information' : 'Warning' }" class="sapUiTinyMarginBottom"/>
+                  <Table id="dmsTable" contextualWidth="Auto" items="{ui>/dmsFiles}" busy="{ui>/dmsBusy}" growing="true" growingThreshold="15" sticky="ColumnHeaders"
+                    noDataText="{= ${ui>/dms/reachable} ? 'No files in Document Management yet. Uploaded files appear here.' : 'Document Management is not reachable.' }">
+                    <columns>
+                      <Column><Text text="File in DMS"/></Column>
+                      <Column minScreenWidth="Tablet" demandPopin="true" width="11rem"><Text text="Stored"/></Column>
+                      <Column hAlign="End" width="6rem" minScreenWidth="Tablet" demandPopin="true"><Text text="Size"/></Column>
+                      <Column width="12rem"><Text text="Upload status"/></Column>
+                      <Column hAlign="End" width="16rem"/>
+                    </columns>
+                    <items>
+                      <ColumnListItem>
+                        <cells>
+                          <ObjectIdentifier title="{ui>name}" text="{ui>mimeType}"/>
+                          <Text text="{path: 'ui>createdAt', formatter: '.formatDateTime'}"/>
+                          <Text text="{path: 'ui>size', formatter: '.formatSize'}"/>
+                          <ObjectStatus text="{= ${ui>uploadStatusName} || 'Not linked to an upload' }" inverted="{= !!${ui>uploadStatusName} }"
+                            state="{path: 'ui>uploadCriticality', formatter: '.formatCriticality'}"
+                            icon="{path: 'ui>uploadStatus', formatter: '.formatStatusIcon'}"/>
+                          <HBox justifyContent="End">
+                            <Button text="Download" icon="sap-icon://download" type="Transparent" press=".onDmsDownload"/>
+                            <Button text="Open Results" icon="sap-icon://detail-view" type="Transparent" press=".onDmsOpenUpload" visible="{= !!${ui>uploadID} }"/>
+                          </HBox>
+                        </cells>
+                      </ColumnListItem>
+                    </items>
+                  </Table>
+                </VBox>
+              </VBox>
+            </VBox>
+          </f:content>
+
+          <f:dependents>
+            <Dialog id="rulesDialog" title="Transaction Type Rules" contentWidth="60rem" resizable="true" draggable="true" class="sapUiContentPadding">
+              <VBox>
+                <Text text="Lines on these G/L accounts must carry a Transaction Type (RMVCT). Every upload is checked against these rules before anything reaches SAP. G/L accounts, company codes and Transaction Types are checked against S/4 when you save." class="juHint sapUiSmallMarginBottom"/>
+                <Table id="rulesTable" items="{ui>/rules}" mode="Delete" delete=".onRuleDelete" busy="{ui>/rulesBusy}"
+                  noDataText="No rules yet. Select Add Rule to create the first one.">
+                  <headerToolbar>
+                    <OverflowToolbar>
+                      <Title text="Rules ({= ${ui>/rules}.length })" level="H4"/>
+                      <ToolbarSpacer/>
+                      <Button text="Add Rule" icon="sap-icon://add" type="Transparent" press=".onRuleAdd"/>
+                    </OverflowToolbar>
+                  </headerToolbar>
+                  <columns>
+                    <Column width="10rem"><Text text="G/L account"/></Column>
+                    <Column width="8rem"><Text text="Company code"/></Column>
+                    <Column width="16rem"><Text text="Required Transaction Type"/></Column>
+                    <Column><Text text="Description"/></Column>
+                  </columns>
+                  <items>
+                    <ColumnListItem highlight="{= ${ui>error} ? 'Error' : (${ui>isNew} || ${ui>dirty} ? 'Information' : 'None') }">
+                      <cells>
+                        <Input value="{ui>glAccount}" placeholder="e.g. 164500" change=".onRuleChange" valueState="{= ${ui>errorField} === 'glAccount' ? 'Error' : 'None' }" valueStateText="{ui>error}"/>
+                        <Input value="{ui>companyCode}" placeholder="* = all" maxLength="4" change=".onRuleChange" valueState="{= ${ui>errorField} === 'companyCode' ? 'Error' : 'None' }" valueStateText="{ui>error}"/>
+                        <ComboBox selectedKey="{ui>requiredTType}" showSecondaryValues="true" width="100%" change=".onRuleChange"
+                          items="{path: 'ui>/ttypes', templateShareable: false}"
+                          valueState="{= ${ui>errorField} === 'requiredTType' ? 'Error' : 'None' }" valueStateText="{ui>error}">
+                          <core:ListItem key="{ui>code}" text="{ui>code}" additionalText="{ui>text}"/>
+                        </ComboBox>
+                        <Input value="{ui>description}" maxLength="100" placeholder="Why this account needs a Transaction Type" change=".onRuleChange"/>
+                      </cells>
+                    </ColumnListItem>
+                  </items>
+                </Table>
+              </VBox>
+              <beginButton>
+                <Button text="Save" type="Emphasized" press=".onRulesSave" enabled="{= !${ui>/rulesBusy} }"/>
+              </beginButton>
+              <endButton>
+                <Button text="Close" press=".onRulesClose"/>
+              </endButton>
+            </Dialog>
+          </f:dependents>
+
+          <!-- Actions -->
+          <f:footer>
+            <OverflowToolbar>
+              <ToolbarSpacer/>
+              <Button text="Clear" type="Transparent" press=".onClear" enabled="{= !${ui>/busy} }"/>
+              <Button text="Validate" icon="sap-icon://validate" press=".onValidate" enabled="{= !${ui>/busy} }"
+                type="{= ${ui>/view} === 'inline' &amp;&amp; (${ui>/upload/status_code} === 'VALIDATED' || ${ui>/upload/status_code} === 'PARTIAL') ? 'Default' : 'Emphasized' }"
+                tooltip="Check the file against S/4 and preview the journals. Nothing is sent to SAP"/>
+              <Button text="Post Validated Journals" type="Emphasized" icon="sap-icon://paper-plane" press=".onPostValidated"
+                visible="{= ${ui>/view} === 'inline' &amp;&amp; (${ui>/upload/status_code} === 'VALIDATED' || ${ui>/upload/status_code} === 'PARTIAL') }"
+                enabled="{= !${ui>/busy} &amp;&amp; ${ui>/postingEnabled} }"
+                tooltip="{= ${ui>/postingEnabled} ? 'Send the journals that passed validation to SAP. Journals with errors stay held back' : 'Sending to SAP is switched off in this system' }"/>
+            </OverflowToolbar>
+          </f:footer>
+        </f:DynamicPage>
+      </f:beginColumnPages>
+
+      <!-- Mid column: results of the selected upload -->
+      <f:midColumnPages>
+        <f:DynamicPage id="detail" toggleHeaderOnTitleClick="false" class="juPage"
+          showFooter="{= ${ui>/upload/status_code} === 'VALIDATED' || ${ui>/upload/status_code} === 'PARTIAL' }">
+          <f:title>
+            <f:DynamicPageTitle>
+              <f:heading>
+                <HBox alignItems="Center">
+                  <Button icon="sap-icon://nav-back" type="Transparent" press=".onCloseDetail" tooltip="Back to Journal Upload"
+                    visible="{= ${ui>/view} === 'page' }" class="sapUiTinyMarginEnd"/>
+                  <Title text="{ui>/upload/fileName}" level="H2" wrapping="true"/>
+                </HBox>
+              </f:heading>
+              <f:expandedContent>
+                <Text text="{parts: ['ui>/upload/createdAt', 'ui>/upload/createdBy'], formatter: '.formatUploadedBy'}"/>
+              </f:expandedContent>
+              <f:snappedContent>
+                <Text text="{parts: ['ui>/upload/createdAt', 'ui>/upload/createdBy'], formatter: '.formatUploadedBy'}"/>
+              </f:snappedContent>
+              <f:navigationActions>
+                <OverflowToolbarButton type="Transparent" press=".onToggleFullScreen" visible="{= ${ui>/view} === 'side' }"
+                  icon="{= ${ui>/layout} === 'MidColumnFullScreen' ? 'sap-icon://exit-full-screen' : 'sap-icon://full-screen' }"
+                  tooltip="{= ${ui>/layout} === 'MidColumnFullScreen' ? 'Exit full screen' : 'Full screen' }"/>
+                <OverflowToolbarButton type="Transparent" icon="sap-icon://decline" press=".onCloseDetail" tooltip="Close" visible="{= ${ui>/view} === 'side' }"/>
+              </f:navigationActions>
+            </f:DynamicPageTitle>
+          </f:title>
+
+          <f:content>
+            <VBox id="midHost"/>
+          </f:content>
+
+          <f:footer>
+            <OverflowToolbar>
+              <ToolbarSpacer/>
+              <Button text="Post Validated Journals" type="Emphasized" icon="sap-icon://paper-plane" press=".onPostValidated"
+                enabled="{= !${ui>/busy} &amp;&amp; ${ui>/postingEnabled} }"
+                tooltip="{= ${ui>/postingEnabled} ? 'Send the journals that passed validation to SAP. Journals with errors stay held back' : 'Sending to SAP is switched off in this system' }"/>
+            </OverflowToolbar>
+          </f:footer>
+        </f:DynamicPage>
+      </f:midColumnPages>
+    </f:FlexibleColumnLayout>
+  </App>
+</mvc:View>

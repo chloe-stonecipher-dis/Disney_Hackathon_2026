@@ -1,0 +1,65 @@
+{
+  "name": "zmaxx-f2548-ext",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@cap-js/hana": "^3",
+    "@sap-cloud-sdk/connectivity": "^4.9.1",
+    "@sap-cloud-sdk/http-client": "^4.9.1",
+    "@sap/cds": "^10",
+    "@sap/xssec": "^4",
+    "exceljs": "^4.4.0"
+  },
+  "devDependencies": {
+    "@cap-js/sqlite": "^3",
+    "@sap/cds-dk": "^10"
+  },
+  "scripts": {
+    "start": "cds-serve",
+    "watch": "cds watch --profile development",
+    "test": "node --test test/*.test.js"
+  },
+  "private": true,
+  "cds": {
+    "zmaxx": {
+      "s43": {
+        "destination": "S43",
+        "sapCheck": true,
+        "allowPosting": true
+      },
+      "ai": {
+        "enabled": false,
+        "model": "gpt-4o-mini"
+      }
+    },
+    "requires": {
+      "[development]": {
+        "auth": "dummy"
+      },
+      "[production]": {
+        "auth": "xsuaa",
+        "db": "hana"
+      }
+    },
+    "[development]": {
+      "zmaxx": {
+        "s43": {
+          "devProxy": "127.0.0.1:8887"
+        }
+      }
+    },
+    "[hybrid]": {
+      "zmaxx": {
+        "dms": {
+          "cfApp": "zmaxx-f2548-ext-srv"
+        }
+      }
+    },
+    "server": {
+      "body_parser": {
+        "limit": "40mb"
+      }
+    }
+  },
+  "description": "ZMAXX retirement: side-by-side extension to Fiori F2548 (Upload General Journal Entries) on SAP BTP / BAIP"
+}

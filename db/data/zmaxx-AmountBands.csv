@@ -1,0 +1,4 @@
+code;lowUSD;highUSD;seq
+UNDER_1;0;1;1
+1_TO_100;1;100;2
+OVER_100;100;;3

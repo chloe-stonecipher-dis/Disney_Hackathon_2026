@@ -1,0 +1,57 @@
+{
+  "_version": "1.59.0",
+  "sap.app": {
+    "id": "zmaxx.results",
+    "type": "application",
+    "title": "Journal Upload History",
+    "description": "Uploads, journals, workflows and messages (F2548 side-by-side extension)",
+    "applicationVersion": { "version": "1.0.0" },
+    "dataSources": {
+      "mainService": { "uri": "/odata/v4/zmaxx/", "type": "OData", "settings": { "odataVersion": "4.0" } }
+    },
+    "crossNavigation": {
+      "inbounds": {
+        "display": { "semanticObject": "ZmaxxJournal", "action": "display", "title": "Journal Upload History", "signature": { "parameters": {}, "additionalParameters": "allowed" } }
+      }
+    }
+  },
+  "sap.ui": { "technology": "UI5", "deviceTypes": { "desktop": true, "tablet": true, "phone": true } },
+  "sap.ui5": {
+    "dependencies": { "minUI5Version": "1.120.0", "libs": { "sap.m": {}, "sap.fe.templates": {} } },
+    "models": {
+      "": { "dataSource": "mainService", "preload": true, "settings": { "operationMode": "Server", "autoExpandSelect": true, "earlyRequests": true } }
+    },
+    "routing": {
+      "routes": [
+        { "pattern": ":?query:", "name": "UploadsList", "target": "UploadsList" },
+        { "pattern": "Uploads({key}):?query:", "name": "UploadsObjectPage", "target": "UploadsObjectPage" }
+      ],
+      "targets": {
+        "UploadsList": {
+          "type": "Component", "id": "UploadsList", "name": "sap.fe.templates.ListReport",
+          "options": { "settings": {
+            "contextPath": "/Uploads",
+            "initialLoad": "Enabled",
+            "variantManagement": "Page",
+            "navigation": { "Uploads": { "detail": { "route": "UploadsObjectPage" } } },
+            "controlConfiguration": { "@com.sap.vocabularies.UI.v1.LineItem": { "tableSettings": { "type": "ResponsiveTable" } } }
+          } }
+        },
+        "UploadsObjectPage": {
+          "type": "Component", "id": "UploadsObjectPage", "name": "sap.fe.templates.ObjectPage",
+          "options": { "settings": {
+            "contextPath": "/Uploads",
+            "editableHeaderContent": false,
+            "controlConfiguration": {
+              "lines/@com.sap.vocabularies.UI.v1.LineItem": { "tableSettings": { "type": "GridTable", "rowCountMode": "Fixed", "rowCount": 25, "personalization": { "filter": true, "sort": true, "column": true }, "quickVariantSelection": { "showCounts": true } } },
+              "messages/@com.sap.vocabularies.UI.v1.LineItem": { "tableSettings": { "type": "ResponsiveTable", "personalization": { "filter": true, "sort": true } } }
+            }
+          } }
+        }
+      }
+    },
+    "contentDensities": { "compact": true, "cozy": true }
+  },
+  "sap.fiori": { "registrationIds": [], "archeType": "transactional" },
+  "sap.cloud": { "public": true, "service": "zmaxx-f2548-ext" }
+}

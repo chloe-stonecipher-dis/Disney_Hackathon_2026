@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Journal Upload</title>
+  <script id="sap-ui-bootstrap"
+    src="https://ui5.sap.com/1.120.21/resources/sap-ui-core.js"
+    data-sap-ui-theme="sap_horizon"
+    data-sap-ui-libs="sap.m,sap.f,sap.ui.unified,sap.ui.layout"
+    data-sap-ui-compat-version="edge"
+    data-sap-ui-async="true"
+    data-sap-ui-resource-roots='{ "zmaxx.upload": "./" }'
+    data-sap-ui-on-init="module:sap/ui/core/ComponentSupport">
+  </script>
+  <style>
+    /* One scroll area: the Fiori page scrolls its content, the browser window does not */
+    html, body { height: 100%; margin: 0; overflow: hidden; }
+    /* Shown while SAPUI5 loads; removed when the page has rendered */
+    #juSplash { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 1rem; background: #f5f6f7; font-family: "72", Arial, sans-serif; color: #556b82; font-size: 0.875rem; }
+    #juSplash .juSpin { width: 2.5rem; height: 2.5rem; border: 0.25rem solid #d9e4f1; border-top-color: #0070f2; border-radius: 50%;
+      animation: juSpin 0.8s linear infinite; }
+    #juSplash b { color: #1d2d3e; font-size: 1.125rem; }
+    @keyframes juSpin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="sapUiBody sapUiSizeCompact">
+  <div id="juSplash"><div class="juSpin"></div><b>Journal Upload</b><span>Loading…</span></div>
+  <div data-sap-ui-component data-name="zmaxx.upload" data-id="container" data-settings='{"id": "zmaxxUpload"}' style="height: 100%"></div>
+</body>
+</html>
